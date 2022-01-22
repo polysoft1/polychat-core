@@ -14,3 +14,7 @@ crate-type = ["rlib", "dylib"]
 [dependencies]
 libloading = "0.7.3"
 polychat-plugin = "0.1.0"
+
+[build-dependencies]
+polychat-plugin = "0.1.0"
+cc = "1.0.72"
