@@ -1,8 +1,22 @@
-mod complie;
-
-use complie::compile;
 use polychat_core::plugin::Plugin;
 
+use std::path::PathBuf;
+use std::env;
+
+fn get_dummy_plugin() -> String {
+    let crate_dir = PathBuf::from(
+        env::var("CARGO_MANIFEST_DIR").unwrap()
+    ).join("tests")
+        .join("dummy_plugin")
+        .join("target")
+        .join("debug");
+
+    if cfg!(target_os = "linux") {
+        return crate_dir.join("libdummy_plugin.so").display().to_string();
+    }
+
+    panic!("Unsupported Operating System");
+}
 
 #[test]
 fn load_garbage_path() {
@@ -12,5 +26,6 @@ fn load_garbage_path() {
 
 #[test]
 fn load_plugin_path() {
-    compile();
+    let plugin = Plugin::new("dummy_plugin", &get_dummy_plugin());
+    assert_eq!(plugin.is_err(), false);
 }
