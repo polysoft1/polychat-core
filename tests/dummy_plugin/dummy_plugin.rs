@@ -1,13 +1,12 @@
 extern crate libc;
+extern crate polychat_plugin;
 
 use std::boxed::Box;
 
-use libc::c_void;
-
-type Account = *mut c_void;
+use polychat_plugin::Account;
 
 #[no_mangle]
-pub extern "C" fn create_acount() -> Account {
+pub extern "C" fn create_account() -> Account {
     Box::into_raw(Box::new(5)) as Account
 }
 
