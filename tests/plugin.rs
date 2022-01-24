@@ -15,6 +15,8 @@ fn get_dummy_plugin() -> String {
         return crate_dir.join("libdummy_plugin.so").display().to_string();
     } else if cfg!(target_os = "windows") {
         return crate_dir.join("dummy_plugin.dll").display().to_string();
+    } else if cfg!(target_os = "macos") {
+        return crate_dir.join("libdummy_plugin.dylib").display().to_string();
     }
 
     panic!("Unsupported Operating System");
