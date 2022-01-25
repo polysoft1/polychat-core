@@ -8,8 +8,10 @@ use polychat_plugin::Account;
 
 use constants::{CREATE_ACCOUNT_FN_NAME,
     DESTROY_ACCOUNT_FN_NAME,
+    PRINT_FN_NAME,
     DeleteAccountFunc,
-    CreateAccountFunc
+    CreateAccountFunc,
+    PrintFunc
 };
 
 pub struct Plugin {
@@ -51,6 +53,23 @@ impl Plugin {
 
             return Ok(account);
         }
+    }
+
+    pub fn print(&self, account: Account) -> Result<(), Error> {
+        let func: Result<Symbol<PrintFunc>, Error>;
+
+        unsafe {
+            func = self.lib.get(PRINT_FN_NAME.as_bytes());
+        }
+
+        if func.is_err() {
+            return Err(func.unwrap_err());
+        }
+        
+        unsafe {
+            func.unwrap()(account);
+        }
+        return Ok(());
     }
 }
 

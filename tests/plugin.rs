@@ -40,3 +40,12 @@ fn create_account_returns_object() {
     let account = res.create_account();
     assert_eq!(account.is_err(), false);
 }
+
+#[test]
+fn print_fn_does_not_err() {
+    let plugin : &mut Plugin = &mut Plugin::new("dummy_plugin", &get_dummy_plugin()).unwrap();
+    let account = plugin.create_account().unwrap();
+    let print_res = plugin.print(account);
+
+    assert_eq!(print_res.is_err(), false);
+}
