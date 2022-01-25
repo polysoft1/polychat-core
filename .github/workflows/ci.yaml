@@ -29,8 +29,8 @@ jobs:
         with:
           command: test
       - name: Dry run publish
-        if: matrix.os == 'ubuntu-latest'
         uses: actions-rs/cargo
-          with:
-            command: publish
-            args: --dry-run
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          command: publish
+          args: --dry-run
