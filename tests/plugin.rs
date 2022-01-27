@@ -25,7 +25,7 @@ fn get_dummy_plugin() -> String {
 #[test]
 fn load_garbage_path() {
     let plugin = Plugin::new("panic_plugin", "panic_path.garbage");
-    assert_eq!(plugin.is_err(), true);
+    debug_assert!(plugin.is_err(), "Non-existent plugin loaded successfully..");
 }
 
 #[test]
