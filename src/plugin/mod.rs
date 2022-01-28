@@ -7,13 +7,13 @@ pub mod vtable;
 use libloading::{Library, Error};
 use polychat_plugin::Account;
 
-use vtable::Vtable;
+use vtable::VTable;
 
 #[derive(Debug)]
 pub struct Plugin {
     name: String,
     _lib: Library, //Needed to preserve symbol lifetime in vtable
-    vtable: Vtable,
+    vtable: VTable,
     accounts: Vec<Account>
 }
 
@@ -29,10 +29,10 @@ impl Plugin {
             return Err(lib_res.unwrap_err());
         }
 
-        let vtable: Result<Vtable, Error>;
+        let vtable: Result<VTable, Error>;
         let lib = lib_res.unwrap();
         unsafe {
-            vtable = Vtable::new(&lib);
+            vtable = VTable::new(&lib);
         }
 
         if vtable.is_err() {
