@@ -7,14 +7,14 @@ use libloading::{Library, Symbol, Error};
 use libloading::os::unix::Symbol as RawSymbol;
 
 #[derive(Debug)]
-pub struct Vtable {
+pub struct VTable {
     pub create_account: RawSymbol<constants::CreateAccountFunc>,
     pub print: RawSymbol<constants::PrintFunc>,
     pub delete_account: RawSymbol<constants::DeleteAccountFunc>,
 }
 
-impl Vtable {
-    pub unsafe fn new(lib: &Library) -> Result<Vtable, Error> {
+impl VTable {
+    pub unsafe fn new(lib: &Library) -> Result<VTable, Error> {
         let create_account_res: Result<Symbol<constants::CreateAccountFunc>, Error> = 
             lib.get(constants::CREATE_ACCOUNT_FN_NAME.as_bytes());
 
@@ -32,7 +32,7 @@ impl Vtable {
             return Err(delete_account_res.unwrap_err());
         }
 
-        Ok(Vtable {
+        Ok(VTable {
             create_account: create_account_res.unwrap().into_raw(),
             print: print_res.unwrap().into_raw(),
             delete_account: delete_account_res.unwrap().into_raw()
