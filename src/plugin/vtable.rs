@@ -5,6 +5,8 @@ use super::constants;
 use libloading::{Library, Symbol, Error};
 #[cfg(unix)]
 use libloading::os::unix::Symbol as RawSymbol;
+#[cfg(windows)]
+use libloading::os::windows::Symbol as RawSymbol;
 
 #[derive(Debug)]
 pub struct VTable {
