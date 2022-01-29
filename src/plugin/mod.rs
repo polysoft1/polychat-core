@@ -2,6 +2,7 @@ extern crate libloading;
 extern crate polychat_plugin;
 
 use libloading::{Library, Error};
+use log::{info, warn, debug};
 
 use polychat_plugin::plugin::{InitializedPlugin, PluginInfo, INITIALIZE_FN_NAME};
 use polychat_plugin::types::Account;
@@ -25,25 +26,44 @@ impl Plugin {
     /// explaining the root cause in an Err type.
     pub fn new(path: &str) -> Result<Plugin, String> {
         let lib_res: Result<Library, Error>;
-
+        info!("Loading lib {}", path);
         unsafe {
             lib_res = Library::new(path);
         }
         
         match lib_res {
-            Err(error) => Err(error.to_string()), // Library Errored out
-            Ok(lib) => match unsafe { lib.get::<InitFn>(INITIALIZE_FN_NAME.as_bytes()) } {
-                Err(error) => Err(error.to_string()), // Finding initialize symbol errored out
-                Ok(func) => {
-                    let mut plugin_info = PluginInfo::new();
-                    func(&mut plugin_info);
+            Err(error) => { // Library Errored out
+                warn!("Library ({}) failed to load: {}", path, error.to_string());
+                return Err(error.to_string());
+            },
+            Ok(lib) => {
+                info!("Successfully loaded library {}", path);
+                info!("Loading \"{}\" symbol for initialization", INITIALIZE_FN_NAME);
 
-                    match InitializedPlugin::new(&plugin_info) {
-                        Err(err) => Err(err), // PluginInfo is missing info :(
-                        Ok(plugin) => Ok(Plugin {
-                            _lib: lib,
-                            plugin_info: plugin
-                        })
+                match unsafe { lib.get::<InitFn>(INITIALIZE_FN_NAME.as_bytes()) } {
+                    Err(error) => { // Finding initialize symbol errored out
+                        warn!("Failed to load \"{}\" symbol in {}: {}", INITIALIZE_FN_NAME, path, error.to_string());
+                        return Err(error.to_string());
+                    },
+                    Ok(func) => {
+                        info!("Sucessfully loaded symbol \"{}\"", INITIALIZE_FN_NAME);
+                        info!("Calling \"{}\"", INITIALIZE_FN_NAME);
+                        let mut plugin_info = PluginInfo::new();
+                        func(&mut plugin_info);
+                        info!("Initializing plugin");
+                        match InitializedPlugin::new(&plugin_info) {
+                            Err(err) => { // PluginInfo is missing info :(
+                                warn!("Could not initialize plugin: {}", err);
+                                return Err(err);
+                            },
+                            Ok(plugin) => {
+                                info!("Successfully initialized plugin");
+                                return Ok(Plugin {
+                                    _lib: lib,
+                                    plugin_info: plugin
+                                });
+                            }
+                        }
                     }
                 }
             }
