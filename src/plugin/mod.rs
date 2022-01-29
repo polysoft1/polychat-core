@@ -3,8 +3,7 @@ extern crate polychat_plugin;
 
 use libloading::{Library, Error, Symbol};
 
-use polychat_plugin::initialized_plugin::InitializedPlugin;
-use polychat_plugin::plugin_info::{INITIALIZE_FN_NAME, PluginInfo};
+use polychat_plugin::plugin::{InitializedPlugin, PluginInfo, INITIALIZE_FN_NAME};
 use polychat_plugin::types::Account;
 
 type InitFn = fn (thing: *mut PluginInfo);
