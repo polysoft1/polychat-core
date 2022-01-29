@@ -25,27 +25,11 @@ fn get_dummy_plugin() -> String {
 #[test]
 fn load_garbage_path() {
     let plugin = Plugin::new("panic_plugin", "panic_path.garbage");
-    assert_eq!(plugin.is_err(), true);
+    debug_assert!(plugin.is_err(), "Non-existent plugin loaded successfully..");
 }
 
 #[test]
 fn load_plugin_path() {
     let plugin = Plugin::new("dummy_plugin", &get_dummy_plugin());
-    assert_eq!(plugin.is_err(), false);
-}
-
-#[test]
-fn create_account_returns_object() {
-    let res: &mut Plugin  = &mut Plugin::new("dummy_plugin", &get_dummy_plugin()).unwrap();
-    let account = res.create_account();
-    assert_eq!(account.is_err(), false);
-}
-
-#[test]
-fn print_fn_does_not_err() {
-    let plugin : &mut Plugin = &mut Plugin::new("dummy_plugin", &get_dummy_plugin()).unwrap();
-    let account = plugin.create_account().unwrap();
-    let print_res = plugin.print(account);
-
-    assert_eq!(print_res.is_err(), false);
+    debug_assert!(!plugin.is_err(), "Error loading plugin: {}", plugin.unwrap_err().to_string());
 }
