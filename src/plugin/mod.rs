@@ -23,34 +23,26 @@ impl Plugin {
         unsafe {
             lib_res = Library::new(path);
         }
-
-        if lib_res.is_err() {
-            return Err(lib_res.unwrap_err().to_string());
-        }
-
-        let lib = lib_res.unwrap();
         
-        unsafe {
-            init_res = lib.get(INITIALIZE_FN_NAME.as_bytes());
+        match lib_res {
+            Err(error) => Err(error.to_string()), // Library Errored out
+            Ok(lib) => match unsafe { lib.get::<InitFn>(INITIALIZE_FN_NAME.as_bytes()) } {
+                Err(error) => Err(error.to_string()), // Finding initialize symbol errored out
+                Ok(func) => {
+                    let mut plugin_info = PluginInfo::new();
+                    func(&mut plugin_info);
+
+                    match InitializedPlugin::new(&plugin_info) {
+                        Err(err) => Err(err), // PluginInfo is missing info :(
+                        Ok(plugin) => Ok(Plugin {
+                            name: name.to_string(),
+                            _lib: lib,
+                            plugin_info: plugin
+                        })
+                    }
+                }
+            }
         }
-
-        if init_res.is_err() {
-            return Err(init_res.unwrap_err().to_string());
-        }
-
-        let mut plugin_info = PluginInfo::new();
-        init_res.unwrap()(&mut plugin_info);
-
-        let init_plugin_res = InitializedPlugin::new(&plugin_info);
-        if init_plugin_res.is_err() {
-            return Err(init_plugin_res.unwrap_err());
-        }
-
-        Ok(Plugin {
-            name: name.to_string(),
-            _lib: lib,
-            plugin_info: init_plugin_res.unwrap()
-        })
     }
 
     pub fn create_account(&self) -> Account {
