@@ -10,11 +10,19 @@ type InitFn = fn (thing: *mut PluginInfo);
 
 #[derive(Debug)]
 pub struct Plugin {
-    _lib: Library, //Needed to preserve symbol lifetime in vtable
+    _lib: Library, //Needed to preserve symbol lifetime in plugin_info
     plugin_info: InitializedPlugin
 }
 
 impl Plugin {
+    /// Creates an initialized Plugin
+    /// 
+    /// # Arguments
+    /// * path - A string slice for an absolute path to a library file (dll/so/dynlib)
+    /// 
+    /// # Errors
+    /// If a Plugin cannot be initialized, a string is returned 
+    /// explaining the root cause in an Err type.
     pub fn new(path: &str) -> Result<Plugin, String> {
         let lib_res: Result<Library, Error>;
 
