@@ -1,7 +1,7 @@
 extern crate libloading;
 extern crate polychat_plugin;
 
-use libloading::{Library, Error, Symbol};
+use libloading::{Library, Error};
 
 use polychat_plugin::plugin::{InitializedPlugin, PluginInfo, INITIALIZE_FN_NAME};
 use polychat_plugin::types::Account;
@@ -10,13 +10,12 @@ type InitFn = fn (thing: *mut PluginInfo);
 
 #[derive(Debug)]
 pub struct Plugin {
-    name: String,
     _lib: Library, //Needed to preserve symbol lifetime in vtable
     plugin_info: InitializedPlugin
 }
 
 impl Plugin {
-    pub fn new(name: &str, path: &str) -> Result<Plugin, String> {
+    pub fn new(path: &str) -> Result<Plugin, String> {
         let lib_res: Result<Library, Error>;
 
         unsafe {
@@ -34,7 +33,6 @@ impl Plugin {
                     match InitializedPlugin::new(&plugin_info) {
                         Err(err) => Err(err), // PluginInfo is missing info :(
                         Ok(plugin) => Ok(Plugin {
-                            name: name.to_string(),
                             _lib: lib,
                             plugin_info: plugin
                         })
