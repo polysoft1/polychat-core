@@ -1,75 +1,68 @@
 extern crate libloading;
 extern crate polychat_plugin;
 
-pub mod constants;
-pub mod vtable;
+use libloading::{Library, Error, Symbol};
 
-use libloading::{Library, Error};
-use polychat_plugin::Account;
+use polychat_plugin::initialized_plugin::InitializedPlugin;
+use polychat_plugin::plugin_info::{INITIALIZE_FN_NAME, PluginInfo};
+use polychat_plugin::types::Account;
 
-use vtable::VTable;
+type InitFn = fn (thing: *mut PluginInfo);
 
 #[derive(Debug)]
 pub struct Plugin {
     name: String,
     _lib: Library, //Needed to preserve symbol lifetime in vtable
-    vtable: VTable,
-    accounts: Vec<Account>
+    plugin_info: InitializedPlugin
 }
 
 impl Plugin {
-    pub fn new(name: &str, path: &str) -> Result<Plugin, Error> {
+    pub fn new(name: &str, path: &str) -> Result<Plugin, String> {
         let lib_res: Result<Library, Error>;
+        let init_res: Result<Symbol<InitFn>, Error>;
 
         unsafe {
             lib_res = Library::new(path);
         }
 
         if lib_res.is_err() {
-            return Err(lib_res.unwrap_err());
+            return Err(lib_res.unwrap_err().to_string());
         }
 
-        let vtable: Result<VTable, Error>;
         let lib = lib_res.unwrap();
+        
         unsafe {
-            vtable = VTable::new(&lib);
+            init_res = lib.get(INITIALIZE_FN_NAME.as_bytes());
         }
 
-        if vtable.is_err() {
-            return Err(vtable.unwrap_err());
+        if init_res.is_err() {
+            return Err(init_res.unwrap_err().to_string());
+        }
+
+        let mut plugin_info = PluginInfo::new();
+        init_res.unwrap()(&mut plugin_info);
+
+        let init_plugin_res = InitializedPlugin::new(&plugin_info);
+        if init_plugin_res.is_err() {
+            return Err(init_plugin_res.unwrap_err());
         }
 
         Ok(Plugin {
             name: name.to_string(),
             _lib: lib,
-            vtable: vtable.unwrap(),
-            accounts: Vec::<Account>::new()
+            plugin_info: init_plugin_res.unwrap()
         })
     }
 
-    pub fn create_account(&mut self) -> Account {
-        let account: Account;
-        unsafe {
-            account = (self.vtable.create_account)();
-        }
-        self.accounts.push(account);
-
-        return account;
+    pub fn create_account(&self) -> Account {
+        (self.plugin_info.create_account)()
     }
 
-    pub fn print(&self, account: Account) -> () {
-        unsafe {
-            (self.vtable.print)(account);
-        }
+    pub fn delete_account(&self, account: Account) {
+        (self.plugin_info.destroy_account)(account);
     }
-}
 
-impl Drop for Plugin {
-    fn drop(&mut self) {
-        for account in &self.accounts {
-            unsafe {
-                (self.vtable.delete_account)(*account);
-            }
-        }
+    pub fn print(&self, account: Account) {
+        (self.plugin_info.print)(account);
     }
 }
