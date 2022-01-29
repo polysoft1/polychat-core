@@ -16,13 +16,13 @@ pub struct Plugin {
 }
 
 impl Plugin {
-    /// Creates an initialized Plugin
+    /// Creates an initialized Plugin, ready for use
     /// 
     /// # Arguments
     /// * path - A string slice for an absolute path to a library file (dll/so/dynlib)
     /// 
     /// # Errors
-    /// If a Plugin cannot be initialized, a string is returned 
+    /// If a Plugin cannot be initialized for any reason, a string is returned 
     /// explaining the root cause in an Err type.
     pub fn new(path: &str) -> Result<Plugin, String> {
         let lib_res: Result<Library, Error>;
