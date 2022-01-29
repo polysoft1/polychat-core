@@ -24,12 +24,12 @@ fn get_dummy_plugin() -> String {
 
 #[test]
 fn load_garbage_path() {
-    let plugin = Plugin::new("panic_plugin", "panic_path.garbage");
+    let plugin = Plugin::new("panic_path.garbage");
     debug_assert!(plugin.is_err(), "Non-existent plugin loaded successfully..");
 }
 
 #[test]
 fn load_plugin_path() {
-    let plugin = Plugin::new("dummy_plugin", &get_dummy_plugin());
+    let plugin = Plugin::new(&get_dummy_plugin());
     debug_assert!(!plugin.is_err(), "Error loading plugin: {}", plugin.unwrap_err().to_string());
 }
