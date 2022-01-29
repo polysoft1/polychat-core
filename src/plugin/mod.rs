@@ -18,7 +18,6 @@ pub struct Plugin {
 impl Plugin {
     pub fn new(name: &str, path: &str) -> Result<Plugin, String> {
         let lib_res: Result<Library, Error>;
-        let init_res: Result<Symbol<InitFn>, Error>;
 
         unsafe {
             lib_res = Library::new(path);
