@@ -7,6 +7,7 @@ use std::boxed::Box;
 use polychat_plugin::types::Account;
 use polychat_plugin::plugin::PluginInfo;
 use polychat_plugin::plugin::Message;
+use polychat_plugin::plugin::SendStatus;
 
 extern "C" fn create_account() -> Account {
     Box::into_raw(Box::new(5)) as Account
@@ -19,10 +20,11 @@ extern "C" fn print(acc: Account) {
     }
 }
 
-extern "C" fn post_message(msg: * const Message) {
+extern "C" fn post_message(msg: * const Message) -> SendStatus {
     unsafe {
         println!("Instructed to post message with body {}", *(*msg).body);
     }
+    return SendStatus::Sending;
 }
 
 extern "C" fn destroy_account(acc: Account) {

@@ -5,7 +5,7 @@ use std::ffi::CString;
 use libloading::{Library, Error};
 use log::{info, warn};
 
-use polychat_plugin::plugin::{InitializedPlugin, PluginInfo, INITIALIZE_FN_NAME, Message};
+use polychat_plugin::plugin::{InitializedPlugin, PluginInfo, INITIALIZE_FN_NAME, Message, SendStatus};
 use polychat_plugin::types::Account;
 
 type InitFn = fn (thing: *mut PluginInfo);
@@ -52,12 +52,12 @@ impl Plugin {
         (self.plugin_info.destroy_account)(account);
     }
 
-    pub fn post_message(&self, msg_body: String) {
+    pub fn post_message(&self, msg_body: String) -> SendStatus {
         let body_cstr = CString::new(msg_body).unwrap();
         let msg = Message {
             body: body_cstr.as_ptr()
         };
-        (self.plugin_info.post_message)(&msg);
+        return (self.plugin_info.post_message)(&msg);
     }
 
     pub fn print(&self, account: Account) {

@@ -12,5 +12,5 @@ crate-type = ["cdylib"]
 
 
 [dependencies]
-polychat-plugin = "0.3.0"
+polychat-plugin = { path = "../../../polychat-plugin" }
 libc = "0.2.113"
