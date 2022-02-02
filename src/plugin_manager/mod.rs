@@ -11,8 +11,12 @@ use log::{debug, error};
 
 use crate::plugin::Plugin;
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 const DYN_LIB_EXTENSION: &str = "so";
+#[cfg(target_os = "macos")]
+const DYN_LIB_EXTENSION: &str = "dynlib";
+#[cfg(target_os = "windows")]
+const DYN_LIB_EXTENSION: &str = "dll";
 
 pub struct PluginManager {
     plugin_map: HashMap<String, Plugin>,
