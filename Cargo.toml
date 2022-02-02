@@ -17,3 +17,4 @@ crate-type = ["rlib", "dylib"]
 libloading = "0.7.3"
 polychat-plugin = "0.3.0"
 log = "0.4.14"
+walkdir = "2.3.2"

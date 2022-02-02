@@ -1,12 +1,18 @@
 extern crate polychat_plugin;
+extern crate walkdir;
 
+use std::ffi::OsStr;
 use std::{collections::HashMap, fs::ReadDir};
 use std::path::Path;
+use walkdir::{WalkDir, DirEntry};
 
 use polychat_plugin::types::Account;
-use log::{info, warn, error};
+use log::{debug, error};
 
 use crate::plugin::Plugin;
+
+#[cfg(unix)]
+const DYN_LIB_EXTENSION: &str = "so";
 
 pub struct PluginManager {
     plugin_map: HashMap<String, Plugin>,
@@ -21,9 +27,11 @@ impl PluginManager {
             return Err(dir_check.unwrap_err());
         }
 
-        for entry in dir_check.unwrap() {
-            if let Ok(entry) = entry {
-                info!("Found {}", entry.path().to_str().expect("Could not decode path"));
+        let iter = WalkDir::new(dir).max_depth(2).min_depth(2).follow_links(false).into_iter();
+
+        for plugin_item in iter.filter_entry(|e| is_expected_file(e)) {
+            if let Ok(plugin_item) = plugin_item {
+                debug!("Found {}", plugin_item.path().to_str().unwrap_or("Unknown Path"));
             }
         }
 
@@ -39,7 +47,13 @@ impl PluginManager {
     }
 }
 
-fn check_directory(dir: &Path) -> Result<ReadDir, &str> {
+fn is_expected_file(entry: &DirEntry) -> bool {
+    let ext = entry.path().extension().unwrap_or(OsStr::new("Unknown"));
+
+    return entry.path().is_file() && ext == DYN_LIB_EXTENSION;
+}
+
+fn check_directory(dir: &Path) -> Result<(), &str> {
     let str_path = dir.to_str().unwrap_or("Unknown path");
     if !dir.is_absolute() {
         error!("Path {} is not absolute", str_path);
@@ -54,13 +68,5 @@ fn check_directory(dir: &Path) -> Result<ReadDir, &str> {
         return Err("Path is not a directory");
     }
 
-    let read_dir_res = dir.read_dir();
-
-    if read_dir_res.is_err() {
-        let err = read_dir_res.unwrap_err();
-        error!("Could not read directory {}: {}", str_path, err.to_string());
-        return Err("Could not read directory");
-    }
-
-    Ok(read_dir_res.unwrap())
+    Ok(())
 }
