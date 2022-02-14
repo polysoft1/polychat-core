@@ -23,6 +23,7 @@ const DYN_LIB_EXTENSION: &str = "dll";
 type PluginMap = HashMap<String, Plugin>;
 type AccountMap = HashMap<String, Vec<Account>>;
 
+#[derive(Debug)]
 pub struct PluginManager {
     plugin_map: PluginMap,
     account_map: AccountMap,
