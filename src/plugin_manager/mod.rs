@@ -69,17 +69,13 @@ impl PluginManager {
 
     pub fn create_account(&mut self, service_name: &str) -> Result<Account, &str>  {
         let name = service_name.to_string();
-
-        if !self.plugin_map.contains_key(&name) {
-            debug!("Could not create account for service {}", name);
-            return Err("No such service");
-        }
-        let plugin = self.plugin_map.get(&name).unwrap(); //Guarenteed since we already checked with contains_key
+        let plugin = get_plugin(&self.plugin_map, service_name)?;
         
         let account = plugin.create_account();
         
         let vec = self.account_map.entry(name).or_insert(Vec::<Account>::new());
         vec.push(account);
+        debug!("Created account {:p} at index {} for {}", account, vec.len() - 1, service_name);
 
         return Ok(account);
     }
@@ -96,9 +92,9 @@ impl PluginManager {
                 return Err("Could not find associated account");
             },
             Some(index) => {
+                debug!("Removing account {:p} at index {} for plugin {}", account, index, name);
                 vector.remove(index);
                 plugin.delete_account(account);
-                debug!("Removed account at index {} for plugin {}", index, name);
             }
         }
         
