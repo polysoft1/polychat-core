@@ -1,9 +1,11 @@
 extern crate polychat_plugin;
 extern crate walkdir;
 
-use std::ffi::OsStr;
-use std::collections::HashMap;
-use std::path::Path;
+use std::{ 
+    ffi::OsStr,
+    collections::HashMap,
+    path::Path
+};
 use walkdir::{WalkDir, DirEntry};
 
 use polychat_plugin::types::Account;
