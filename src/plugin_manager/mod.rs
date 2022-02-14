@@ -1,9 +1,8 @@
 extern crate polychat_plugin;
 extern crate walkdir;
 
-use std::{ffi::OsStr, vec};
+use std::ffi::OsStr;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::path::Path;
 use walkdir::{WalkDir, DirEntry};
 
@@ -82,22 +81,10 @@ impl PluginManager {
 
     pub fn delete_account(&mut self, service_name: &str, account: Account) -> Result<(), &str> {
         let name = service_name.to_string();
-        let plugin = match self.plugin_map.get(&name) {
-            None => {
-                return Err("No such service");
-            }
-            Some(plugin) => plugin
-        };
-
-        let vector = match self.account_map.entry(name.clone()) {
-            Entry::Vacant(_) => {
-                warn!("Could not find associated account map for {}", name);
-                return Err("No accounts available");
-            }
-            Entry::Occupied(vector) => vector.into_mut(),
-        };
+        let plugin = get_plugin(&self.plugin_map, service_name)?;
+        let vector = get_account_vec(&mut self.account_map, service_name)?;
         let account_index = vector.iter().position(|x| *x == account);
-
+        
         match account_index {
             None => {
                 warn!("Could not find specified account for {}", service_name);
@@ -136,6 +123,26 @@ impl Drop for PluginManager {
             }
         }
     }
+}
+
+fn get_plugin<'map>(plugin_map: &'map HashMap<String, Plugin>, service_name: &str) -> Result<&'map Plugin, &'static str> {
+    return match plugin_map.get(service_name) {
+        None => {
+            warn!("Could not find service {}", service_name);
+            return Err("No such service");
+        }
+        Some(plugin) => Ok(plugin)
+    };
+}
+
+fn get_account_vec<'map>(account_map: &'map mut HashMap<String, Vec<Account>>, service_name: &str) -> Result<&'map mut Vec<Account>, &'static str> {
+    return match account_map.get_mut(service_name) {
+        None => {
+            warn!("Could not find associated account map for {}", service_name);
+            return Err("No accounts available");
+        }
+        Some(vector) => Ok(vector),
+    };
 }
 
 fn is_expected_file(entry: &DirEntry) -> bool {
