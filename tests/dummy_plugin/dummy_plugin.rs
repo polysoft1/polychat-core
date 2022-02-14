@@ -2,7 +2,7 @@ extern crate libc;
 extern crate polychat_plugin;
 
 use std::boxed::Box;
-
+use std::ffi::CString;
 
 use polychat_plugin::types::Account;
 use polychat_plugin::plugin::PluginInfo;
@@ -35,6 +35,7 @@ extern "C" fn destroy_account(acc: Account) {
 
 #[no_mangle]
 unsafe extern "C" fn initialize(info: *mut PluginInfo) {
+    (*info).name = CString::new("dummy").expect("Could not create CString").into_raw();
     (*info).create_account = Some(create_account);
     (*info).destroy_account = Some(destroy_account);
     (*info).post_message = Some(post_message);

@@ -112,6 +112,16 @@ impl PluginManager {
         
         return Ok(());
     }
+
+    pub fn get_services(&self) -> Vec<String> {
+        let mut output: Vec<String> = Vec::<String>::new();
+
+        for (key, _) in &self.plugin_map {
+            output.push(key.clone());
+        }
+
+        return output;
+    }
 }
 
 impl Drop for PluginManager {
