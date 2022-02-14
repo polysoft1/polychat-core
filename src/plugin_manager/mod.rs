@@ -93,7 +93,7 @@ impl PluginManager {
             },
             Some(index) => {
                 debug!("Removing account {:p} at index {} for plugin {}", account, index, name);
-                vector.remove(index);
+                vector.swap_remove(index);
                 plugin.delete_account(account);
             }
         }
