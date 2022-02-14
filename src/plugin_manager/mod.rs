@@ -16,7 +16,7 @@ use crate::plugin::Plugin;
 #[cfg(target_os = "linux")]
 const DYN_LIB_EXTENSION: &str = "so";
 #[cfg(target_os = "macos")]
-const DYN_LIB_EXTENSION: &str = "dynlib";
+const DYN_LIB_EXTENSION: &str = "dylib";
 #[cfg(target_os = "windows")]
 const DYN_LIB_EXTENSION: &str = "dll";
 
