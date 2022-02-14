@@ -1,13 +1,14 @@
 extern crate polychat_plugin;
 extern crate walkdir;
 
-use std::ffi::OsStr;
-use std::{collections::HashMap, fs::ReadDir};
+use std::{ffi::OsStr, vec};
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::path::Path;
 use walkdir::{WalkDir, DirEntry};
 
 use polychat_plugin::types::Account;
-use log::{debug, error};
+use log::{debug, error, warn};
 
 use crate::plugin::Plugin;
 
@@ -20,34 +21,110 @@ const DYN_LIB_EXTENSION: &str = "dll";
 
 pub struct PluginManager {
     plugin_map: HashMap<String, Plugin>,
-    account_map: HashMap<String, Account>
+    account_map: HashMap<String, Vec<Account>>,
 }
 
 impl PluginManager {
     pub fn new(dir: &Path) -> Result<PluginManager, &str> {
-        let dir_check = check_directory(dir);
-
-        if dir_check.is_err() {
-            return Err(dir_check.unwrap_err());
-        }
+        check_directory(dir)?;
+        let mut plugin_map = HashMap::<String, Plugin>::new();
 
         let iter = WalkDir::new(dir).max_depth(2).min_depth(2).follow_links(false).into_iter();
 
         for plugin_item in iter.filter_entry(|e| is_expected_file(e)) {
             if let Ok(plugin_item) = plugin_item {
-                debug!("Found {}", plugin_item.path().to_str().unwrap_or("Unknown Path"));
+                let path = plugin_item.path().to_str().unwrap_or("Unknown Path");
+                debug!("Found {}", path);
+                let plugin_res = Plugin::new(path);
+                
+                match plugin_res {
+                    Ok(plugin) => {
+                        let name = plugin.get_name();
+                        if plugin_map.contains_key(name) {
+                            warn!("Duplicate plugin name {}, using the first one found", name);
+                        } else {
+                            debug!("Adding {} to the manager", name);
+                            plugin_map.insert(name.to_owned(), plugin);
+                        }
+                    },
+                    Err(error) => warn!("[{}] Could not load library: {}", path, error.as_str())
+                };
             }
         }
 
         Ok(PluginManager {
-            plugin_map: HashMap::<String, Plugin>::new(),
-            account_map: HashMap::<String, Account>::new()
+            plugin_map,
+            account_map: HashMap::<String, Vec<Account>>::new()
         })
     }
     
     pub fn from(path: &str) -> Result<PluginManager, &str> {
         let dir = Path::new(path);
         PluginManager::new(dir)
+    }
+
+    pub fn create_account(&mut self, service_name: &str) -> Result<Account, &str>  {
+        let name = service_name.to_string();
+
+        if !self.plugin_map.contains_key(&name) {
+            debug!("Could not create account for service {}", name);
+            return Err("No such service");
+        }
+        let plugin = self.plugin_map.get(&name).unwrap(); //Guarenteed since we already checked with contains_key
+        
+        let account = plugin.create_account();
+        
+        let vec = self.account_map.entry(name).or_insert(Vec::<Account>::new());
+        vec.push(account);
+
+        return Ok(account);
+    }
+
+    pub fn delete_account(&mut self, service_name: &str, account: Account) -> Result<(), &str> {
+        let name = service_name.to_string();
+        let plugin = match self.plugin_map.get(&name) {
+            None => {
+                return Err("No such service");
+            }
+            Some(plugin) => plugin
+        };
+
+        let vector = match self.account_map.entry(name.clone()) {
+            Entry::Vacant(_) => {
+                warn!("Could not find associated account map for {}", name);
+                return Err("No accounts available");
+            }
+            Entry::Occupied(vector) => vector.into_mut(),
+        };
+        let account_index = vector.iter().position(|x| *x == account);
+
+        match account_index {
+            None => {
+                warn!("Could not find specified account for {}", service_name);
+                return Err("Could not find associated account");
+            },
+            Some(index) => {
+                vector.remove(index);
+                plugin.delete_account(account);
+                debug!("Removed account at index {} for plugin {}", index, name);
+            }
+        }
+        
+        return Ok(());
+    }
+}
+
+impl Drop for PluginManager {
+    fn drop(&mut self) {
+        for (name, plugin) in &self.plugin_map {
+            for accounts in self.account_map.get(name) {
+                for account in accounts {
+                    // Don't need to update the account vector since
+                    // this object is getting dropped
+                    plugin.delete_account(*account);
+                }
+            }
+        }
     }
 }
 
