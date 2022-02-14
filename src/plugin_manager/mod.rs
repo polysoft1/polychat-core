@@ -1,7 +1,7 @@
 extern crate polychat_plugin;
 extern crate walkdir;
 
-use std::{ffi::OsStr, thread::AccessError};
+use std::ffi::OsStr;
 use std::collections::HashMap;
 use std::path::Path;
 use walkdir::{WalkDir, DirEntry};
