@@ -1,7 +1,7 @@
 extern crate polychat_plugin;
 extern crate walkdir;
 
-use std::ffi::OsStr;
+use std::{ffi::OsStr, thread::AccessError};
 use std::collections::HashMap;
 use std::path::Path;
 use walkdir::{WalkDir, DirEntry};
@@ -18,15 +18,18 @@ const DYN_LIB_EXTENSION: &str = "dynlib";
 #[cfg(target_os = "windows")]
 const DYN_LIB_EXTENSION: &str = "dll";
 
+type PluginMap = HashMap<String, Plugin>;
+type AccountMap = HashMap<String, Vec<Account>>;
+
 pub struct PluginManager {
-    plugin_map: HashMap<String, Plugin>,
-    account_map: HashMap<String, Vec<Account>>,
+    plugin_map: PluginMap,
+    account_map: AccountMap,
 }
 
 impl PluginManager {
     pub fn new(dir: &Path) -> Result<PluginManager, &str> {
         check_directory(dir)?;
-        let mut plugin_map = HashMap::<String, Plugin>::new();
+        let mut plugin_map = PluginMap::new();
 
         let iter = WalkDir::new(dir).max_depth(2).min_depth(2).follow_links(false).into_iter();
 
@@ -53,7 +56,7 @@ impl PluginManager {
 
         Ok(PluginManager {
             plugin_map,
-            account_map: HashMap::<String, Vec<Account>>::new()
+            account_map: AccountMap::new()
         })
     }
     
@@ -125,7 +128,7 @@ impl Drop for PluginManager {
     }
 }
 
-fn get_plugin<'map>(plugin_map: &'map HashMap<String, Plugin>, service_name: &str) -> Result<&'map Plugin, &'static str> {
+fn get_plugin<'map>(plugin_map: &'map PluginMap, service_name: &str) -> Result<&'map Plugin, &'static str> {
     return match plugin_map.get(service_name) {
         None => {
             warn!("Could not find service {}", service_name);
@@ -135,7 +138,7 @@ fn get_plugin<'map>(plugin_map: &'map HashMap<String, Plugin>, service_name: &st
     };
 }
 
-fn get_account_vec<'map>(account_map: &'map mut HashMap<String, Vec<Account>>, service_name: &str) -> Result<&'map mut Vec<Account>, &'static str> {
+fn get_account_vec<'map>(account_map: &'map mut AccountMap, service_name: &str) -> Result<&'map mut Vec<Account>, &'static str> {
     return match account_map.get_mut(service_name) {
         None => {
             warn!("Could not find associated account map for {}", service_name);
