@@ -63,6 +63,10 @@ impl Plugin {
     pub fn print(&self, account: Account) {
         (self.plugin_info.print)(account);
     }
+
+    pub fn get_name(&self) -> &String {
+        &self.plugin_info.name
+    }
 }
 
 fn new_from_loaded_lib(path: &str, lib: Library) -> Result<Plugin, String>{
