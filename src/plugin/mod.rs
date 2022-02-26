@@ -5,15 +5,18 @@ use std::ffi::CString;
 use libloading::{Library, Error};
 use log::{info, warn};
 
+use crate::main::Main;
+
 use polychat_plugin::plugin::{InitializedPlugin, PluginInfo, INITIALIZE_FN_NAME, Message, SendStatus};
 use polychat_plugin::types::Account;
 
-type InitFn = fn (thing: *mut PluginInfo);
+type InitFn = fn (plugin_info: *mut PluginInfo, core_api: *const PolyChatApiV1);
 
 #[derive(Debug)]
 pub struct Plugin {
     _lib: Library, //Needed to preserve symbol lifetime in plugin_info
-    plugin_info: InitializedPlugin
+    plugin_info: InitializedPlugin,
+    interface: Main
 }
 
 impl Plugin {
@@ -25,7 +28,7 @@ impl Plugin {
     /// # Errors
     /// If a Plugin cannot be initialized for any reason, a string is returned 
     /// explaining the root cause in an Err type.
-    pub fn new(path: &str) -> Result<Plugin, String> {
+    pub fn new(path: &str, interface: Main) -> Result<Plugin, String> {
         let lib_res: Result<Library, Error>;
         info!("[{}] Loading lib", path);
         unsafe {
@@ -39,7 +42,7 @@ impl Plugin {
             },
             Ok(lib) => {
                 info!("[{}] Successfully loaded library", path);
-                return new_from_loaded_lib(path, lib);
+                return new_from_loaded_lib(path, lib, interface);
             }
         }
     }
@@ -52,12 +55,12 @@ impl Plugin {
         (self.plugin_info.destroy_account)(account);
     }
 
-    pub fn post_message(&self, msg_body: String) -> SendStatus {
+    pub fn post_message(&self, account: Account, msg_body: String) -> SendStatus {
         let body_cstr = CString::new(msg_body).unwrap();
         let msg = Message {
             body: body_cstr.as_ptr()
         };
-        return (self.plugin_info.post_message)(&msg);
+        return (self.plugin_info.post_message)(account, &msg);
     }
 
     pub fn print(&self, account: Account) {
@@ -69,7 +72,7 @@ impl Plugin {
     }
 }
 
-fn new_from_loaded_lib(path: &str, lib: Library) -> Result<Plugin, String>{
+fn new_from_loaded_lib(path: &str, lib: Library, interface: Main) -> Result<Plugin, String>{
     info!("Loading \"{}\" symbol for initialization", INITIALIZE_FN_NAME);
 
     match unsafe { lib.get::<InitFn>(INITIALIZE_FN_NAME.as_bytes()) } {
@@ -77,12 +80,12 @@ fn new_from_loaded_lib(path: &str, lib: Library) -> Result<Plugin, String>{
             warn!("Failed to load \"{}\" from {} symbol: {}", INITIALIZE_FN_NAME, path, error.to_string());
             return Err(error.to_string());
         },
-        Ok(func) => {
+        Ok(initialize_func) => {
             info!("[{}] Sucessfully loaded symbol \"{}\"", path, INITIALIZE_FN_NAME);
             info!("[{}] Calling \"{}\"", path, INITIALIZE_FN_NAME);
 
             let mut plugin_info = PluginInfo::new();
-            func(&mut plugin_info);
+            initialize_func(&mut plugin_info, &interface);
 
             info!("[{}] Initializing plugin", path);
             let init_plugin_res = InitializedPlugin::new(&plugin_info); 
@@ -93,7 +96,8 @@ fn new_from_loaded_lib(path: &str, lib: Library) -> Result<Plugin, String>{
 
             return Ok(Plugin {
                 _lib: lib,
-                plugin_info: init_plugin_res.unwrap()
+                plugin_info: init_plugin_res.unwrap(),
+                interface
             });
         }
     }
