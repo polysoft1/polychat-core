@@ -7,7 +7,7 @@ use log::{info, warn};
 
 use crate::main::Main;
 
-use polychat_plugin::plugin::{InitializedPlugin, PluginInfo, INITIALIZE_FN_NAME, Message, SendStatus};
+use polychat_plugin::plugin::{InitializedPlugin, PluginInfo, INITIALIZE_FN_NAME, Message, SendStatus, PolyChatApiV1};
 use polychat_plugin::types::Account;
 
 type InitFn = fn (plugin_info: *mut PluginInfo, core_api: *const PolyChatApiV1);
@@ -15,8 +15,7 @@ type InitFn = fn (plugin_info: *mut PluginInfo, core_api: *const PolyChatApiV1);
 #[derive(Debug)]
 pub struct Plugin {
     _lib: Library, //Needed to preserve symbol lifetime in plugin_info
-    plugin_info: InitializedPlugin,
-    interface: Main
+    plugin_info: InitializedPlugin
 }
 
 impl Plugin {
@@ -28,7 +27,7 @@ impl Plugin {
     /// # Errors
     /// If a Plugin cannot be initialized for any reason, a string is returned 
     /// explaining the root cause in an Err type.
-    pub fn new(path: &str, interface: Main) -> Result<Plugin, String> {
+    pub fn new(path: &str, api: &PolyChatApiV1) -> Result<Plugin, String> {
         let lib_res: Result<Library, Error>;
         info!("[{}] Loading lib", path);
         unsafe {
@@ -42,7 +41,7 @@ impl Plugin {
             },
             Ok(lib) => {
                 info!("[{}] Successfully loaded library", path);
-                return new_from_loaded_lib(path, lib, interface);
+                return new_from_loaded_lib(path, lib, api);
             }
         }
     }
@@ -72,7 +71,7 @@ impl Plugin {
     }
 }
 
-fn new_from_loaded_lib(path: &str, lib: Library, interface: Main) -> Result<Plugin, String>{
+fn new_from_loaded_lib(path: &str, lib: Library, interface: &PolyChatApiV1) -> Result<Plugin, String>{
     info!("Loading \"{}\" symbol for initialization", INITIALIZE_FN_NAME);
 
     match unsafe { lib.get::<InitFn>(INITIALIZE_FN_NAME.as_bytes()) } {
@@ -85,7 +84,7 @@ fn new_from_loaded_lib(path: &str, lib: Library, interface: Main) -> Result<Plug
             info!("[{}] Calling \"{}\"", path, INITIALIZE_FN_NAME);
 
             let mut plugin_info = PluginInfo::new();
-            initialize_func(&mut plugin_info, &interface);
+            initialize_func(&mut plugin_info, interface);
 
             info!("[{}] Initializing plugin", path);
             let init_plugin_res = InitializedPlugin::new(&plugin_info); 
@@ -96,8 +95,7 @@ fn new_from_loaded_lib(path: &str, lib: Library, interface: Main) -> Result<Plug
 
             return Ok(Plugin {
                 _lib: lib,
-                plugin_info: init_plugin_res.unwrap(),
-                interface
+                plugin_info: init_plugin_res.unwrap()
             });
         }
     }

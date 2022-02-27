@@ -1,6 +1,8 @@
 extern crate polychat_plugin;
 extern crate walkdir;
 
+use super::main::Main;
+
 use std::{ 
     ffi::OsStr,
     collections::HashMap,
@@ -8,7 +10,11 @@ use std::{
 };
 use walkdir::{WalkDir, DirEntry};
 
-use polychat_plugin::types::Account;
+use polychat_plugin::{
+    types::Account,
+    plugin::PolyChatApiV1,
+    plugin::CoreInterface
+};
 use log::{debug, error, warn};
 
 use crate::plugin::Plugin;
@@ -24,12 +30,14 @@ type PluginMap = HashMap<String, Plugin>;
 type AccountMap = HashMap<String, Vec<Account>>;
 
 #[derive(Debug)]
-pub struct PluginManager {
+pub struct PluginManager<'a> {
     plugin_map: PluginMap,
     account_map: AccountMap,
+    api: PolyChatApiV1,
+    _main_ptr: *mut &'a Box<Main<'a>> //Needed to maintain lifetime of api
 }
 
-impl PluginManager {
+impl<'a> PluginManager<'_> {
     #[allow(rustdoc::private_intra_doc_links)]
     /**
      * Creates a new PluginManager based off the provided path
@@ -38,10 +46,12 @@ impl PluginManager {
      * 
      * This returns an `Err` when [check_directory](check_directory) would fail.
      */
-    pub fn new(dir: &Path) -> Result<PluginManager, &str> {
+    pub fn new(dir: &Path, core: &'a Box<Main<'a>>) -> Result<PluginManager<'a>, &'static str> {
         check_directory(dir)?; //Check to ensure that we can load from the directory
         let mut plugin_map = PluginMap::new();
-        
+        let main_ptr = Box::into_raw(Box::new(core));
+        let api = PolyChatApiV1::new(main_ptr as *mut &Box<dyn CoreInterface>);
+
         //Walk through the directory, ignore symlinks
         let iter = WalkDir::new(dir).max_depth(2).min_depth(2).follow_links(false).into_iter();
 
@@ -50,7 +60,7 @@ impl PluginManager {
             if let Ok(plugin_item) = plugin_item {
                 let path = plugin_item.path().to_str().unwrap_or("Unknown Path");
                 debug!("Found {}", path);
-                let plugin_res = Plugin::new(path);
+                let plugin_res = Plugin::new(path, &api);
                 
                 match plugin_res {
                     Ok(plugin) => {
@@ -71,7 +81,9 @@ impl PluginManager {
 
         Ok(PluginManager {
             plugin_map,
-            account_map: AccountMap::new()
+            account_map: AccountMap::new(),
+            _main_ptr: main_ptr,
+            api
         })
     }
     
@@ -80,9 +92,9 @@ impl PluginManager {
      * 
      * Does the exact same thing as [new](#method.new)
      */
-    pub fn from(path: &str) -> Result<PluginManager, &str> {
+    pub fn from(path: &str, core: &'a Box<Main<'a>>) -> Result<PluginManager<'a>, &'static str> {
         let dir = Path::new(path);
-        PluginManager::new(dir)
+        PluginManager::new(dir, core)
     }
 
     /**
@@ -152,7 +164,7 @@ impl PluginManager {
     }
 }
 
-impl Drop for PluginManager {
+impl Drop for PluginManager<'_> {
     fn drop(&mut self) {
         for (name, plugin) in &self.plugin_map {
             for accounts in self.account_map.get(name) {
@@ -162,6 +174,9 @@ impl Drop for PluginManager {
                     plugin.delete_account(*account);
                 }
             }
+        }
+        unsafe {
+            Box::from_raw(self._main_ptr);
         }
     }
 }
@@ -227,7 +242,7 @@ fn is_expected_file(entry: &DirEntry) -> bool {
  * is logged and an `Err` is returned with a string slice
  * explaining the error.
  */
-fn check_directory(dir: &Path) -> Result<(), &str> {
+fn check_directory(dir: &Path) -> Result<(), &'static str> {
     let str_path = dir.to_str().unwrap_or("Unknown path");
     if !dir.is_absolute() {
         error!("Path {} is not absolute", str_path);

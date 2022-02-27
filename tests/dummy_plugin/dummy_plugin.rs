@@ -20,7 +20,7 @@ extern "C" fn print(acc: Account) {
     }
 }
 
-extern "C" fn post_message(msg: * const Message) -> SendStatus {
+extern "C" fn post_message(acc: Account, msg: * const Message) -> SendStatus {
     unsafe {
         println!("Instructed to post message with body {}", *(*msg).body);
     }
