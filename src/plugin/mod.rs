@@ -67,6 +67,10 @@ impl Plugin {
     pub fn get_name(&self) -> &String {
         &self.plugin_info.name
     }
+
+    pub fn get_protocol_name(&self) -> &String {
+        &self.plugin_info.protocol_name
+    }
 }
 
 fn new_from_loaded_lib(path: &str, lib: Library) -> Result<Plugin, String>{

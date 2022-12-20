@@ -141,7 +141,7 @@ impl PluginManager {
      * Returns a vector of services that the PluginManager 
      * currently supports.
      */
-    pub fn get_services(&self) -> Vec<String> {
+    pub fn get_plugin_names(&self) -> Vec<String> {
         let mut output: Vec<String> = Vec::<String>::new();
 
         for (key, _) in &self.plugin_map {
@@ -149,6 +149,10 @@ impl PluginManager {
         }
 
         return output;
+    }
+
+    pub fn get_plugin_by_name(&self, name: String) -> Option<&Plugin> {
+        return self.plugin_map.get::<str>(name.as_ref());
     }
 }
 
