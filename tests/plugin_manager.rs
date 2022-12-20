@@ -73,7 +73,7 @@ fn double_free_never_happens() {
 fn get_services_returns_services() {
     let path = get_dummy_plugin();
     let plugin_manager = PluginManager::from(path.as_str()).unwrap();
-    let services = plugin_manager.get_services();
+    let services = plugin_manager.get_plugin_names();
 
     assert_eq!(services, ["dummy"]);
 }
