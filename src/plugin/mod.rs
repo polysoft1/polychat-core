@@ -52,12 +52,12 @@ impl Plugin {
         (self.plugin_info.destroy_account)(account);
     }
 
-    pub fn post_message(&self, msg_body: String) -> SendStatus {
+    pub fn post_message(&self, account: Account, msg_body: String) -> SendStatus {
         let body_cstr = CString::new(msg_body).unwrap();
         let msg = Message {
             body: body_cstr.as_ptr()
         };
-        return (self.plugin_info.post_message)(&msg);
+        return (self.plugin_info.post_message)(account, &msg);
     }
 
     pub fn print(&self, account: Account) {
