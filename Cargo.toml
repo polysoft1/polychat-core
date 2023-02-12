@@ -15,6 +15,6 @@ crate-type = ["rlib", "dylib"]
 
 [dependencies]
 libloading = "0.7.3"
-polychat-plugin = {path="../polychat-plugin"}
+polychat-plugin = "0.4.0"
 log = "0.4.14"
 walkdir = "2.3.2"
